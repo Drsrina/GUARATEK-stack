@@ -1,0 +1,147 @@
+services:
+  # ==========================================
+  # CAMADA 1: INFRA E AUDITORIA
+  # ==========================================
+  nginx-proxy:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./data/npm:/data
+      - ./data/letsencrypt:/etc/letsencrypt
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/portainer:/data
+
+  # ==========================================
+  # CAMADA 2: PERSISTÊNCIA CENTRALIZADA
+  # ==========================================
+  postgres-central:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Repassando variáveis do .env para o init-banco.sh ler
+      N8N_DB_PASS: ${N8N_DB_PASS}
+      ODOO_DB_PASS: ${ODOO_DB_PASS}
+      WINDMILL_DB_PASS: ${WINDMILL_DB_PASS}
+      CHATWOOT_DB_PASS: ${CHATWOOT_DB_PASS}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./config/init-banco.sh:/docker-entrypoint-initdb.d/init-banco.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # CAMADA 3: MOTORES E AGENTES (Ligados)
+  # ==========================================
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres-central
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n_db
+      - DB_POSTGRESDB_USER=n8n_user
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASS}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - WEBHOOK_URL=https://n8n.${DOMINIO_BASE}/
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+    depends_on:
+      postgres-central:
+        condition: service_healthy
+
+  windmill:
+    image: windmilllabs/windmill:main
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://windmill_user:${WINDMILL_DB_PASS}@postgres-central:5432/windmill_db?sslmode=disable
+      - BASE_URL=https://windmill.${DOMINIO_BASE}
+    depends_on:
+      postgres-central:
+        condition: service_healthy
+
+  picoclaw:
+    image: sipeed/picoclaw:latest
+    restart: unless-stopped
+    ports:
+      - "18800:18800"
+    volumes:
+      - ./data/picoclaw:/root/.picoclaw
+
+  odoo:
+    image: odoo:17
+    restart: unless-stopped
+    ports:
+      - "8069:8069"
+    environment:
+      - HOST=postgres-central
+      - USER=odoo_user
+      - PASSWORD=${ODOO_DB_PASS}
+    volumes:
+      - ./data/odoo:/var/lib/odoo
+    depends_on:
+      postgres-central:
+        condition: service_healthy
+
+  # ==========================================
+  # CAMADA 4: ATENDIMENTO (Em Standby)
+  # ==========================================
+  redis:
+    profiles: ["atendimento"]
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+
+  chatwoot-web:
+    profiles: ["atendimento"]
+    image: chatwoot/chatwoot:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment: &chatwoot_env
+      - POSTGRES_DATABASE=chatwoot_db
+      - POSTGRES_HOST=postgres-central
+      - POSTGRES_USERNAME=chatwoot_user
+      - POSTGRES_PASSWORD=${CHATWOOT_DB_PASS}
+      - REDIS_URL=redis://redis:6379
+      - FRONTEND_URL=https://chatwoot.${DOMINIO_BASE}
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    depends_on:
+      postgres-central:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  chatwoot-sidekiq:
+    profiles: ["atendimento"]
+    image: chatwoot/chatwoot:latest
+    restart: unless-stopped
+    environment: *chatwoot_env
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    depends_on:
+      postgres-central:
+        condition: service_healthy
+      redis:
+        condition: service_started
