@@ -11,8 +11,10 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE USER odoo_user WITH PASSWORD '${ODOO_DB_PASS}';
     CREATE DATABASE odoo_db OWNER odoo_user;
 
-    /* Banco do Windmill */
+/* Banco do Windmill */
     CREATE USER windmill_user WITH PASSWORD '${WINDMILL_DB_PASS}';
+    CREATE ROLE windmill_admin;
+    GRANT windmill_admin TO windmill_user;
     CREATE DATABASE windmill_db OWNER windmill_user;
 
     /* Banco do Chatwoot */
