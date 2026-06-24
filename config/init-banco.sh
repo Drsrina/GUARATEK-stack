@@ -14,9 +14,13 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 /* Banco do Windmill */
     CREATE USER windmill_user WITH PASSWORD '${WINDMILL_DB_PASS}';
     CREATE ROLE windmill_admin;
+    
+    /* Concede a chave mestra para o usuário da aplicação */
     GRANT windmill_admin TO windmill_user;
-    CREATE DATABASE windmill_db OWNER windmill_user;
-
+    
+    /* Define o Admin como o dono absoluto */
+    CREATE DATABASE windmill_db OWNER windmill_admin;
+    
     /* Banco do Chatwoot */
     CREATE USER chatwoot_user WITH PASSWORD '${CHATWOOT_DB_PASS}';
     CREATE DATABASE chatwoot_db OWNER chatwoot_user;
