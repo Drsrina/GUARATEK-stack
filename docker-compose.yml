@@ -89,10 +89,11 @@ services:
       - ./data/picoclaw:/root/.picoclaw
 
   odoo:
-    image: odoo:17
+    image: odoo:17.0
     restart: unless-stopped
     ports:
       - "8069:8069"
+    command: odoo -d odoo_db -i base
     environment:
       - HOST=postgres-central
       - USER=odoo_user
