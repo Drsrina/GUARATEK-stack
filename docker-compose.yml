@@ -106,6 +106,34 @@ services:
       postgres-central:
         condition: service_healthy
 
+  typebot-db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=typebot
+      - POSTGRES_PASSWORD=sua_senha_segura
+      - POSTGRES_DB=typebot
+    volumes:
+      - ./data/typebot-db:/var/lib/postgresql/data
+
+  typebot-redis:
+    image: redis:7-alpine
+    restart: always
+
+  typebot-builder:
+    image: baptisteArno/typebot-ce:latest
+    restart: always
+    ports:
+      - "8080:3000" # Mapeia porta interna 3000 para externa 8080
+    environment:
+      - DATABASE_URL=postgresql://typebot:sua_senha_segura@typebot-db:5432/typebot
+      - REDIS_URL=redis://typebot-redis:6379
+      - NEXTAUTH_URL=http://seu_dominio_typebot.com
+      - ENCRYPTION_SECRET=uma_chave_longa_e_aleatoria
+    depends_on:
+      - typebot-db
+      - typebot-redis
+
   # ==========================================
   # CAMADA 4: ATENDIMENTO (Em Standby)
   # ==========================================
