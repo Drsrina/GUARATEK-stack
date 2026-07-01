@@ -111,14 +111,18 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
 
-  typebot-builder:
+typebot-builder:
     image: baptistearno/typebot-builder:latest
     restart: unless-stopped
+    ports:
+      - "8080:3000"
     environment:
       - DATABASE_URL=postgresql://typebot_user:${TYPEBOT_DB_PASS}@postgres-central:5432/typebot_db
       - REDIS_URL=redis://typebot-redis:6379
-      - NEXTAUTH_URL=https://typebot-builder.${DOMINIO_BASE}
+      - NEXTAUTH_URL=${TYPEBOT_BUILDER_URL}
+      - NEXT_PUBLIC_VIEWER_URL=${TYPEBOT_VIEWER_URL}
       - ENCRYPTION_SECRET=${TYPEBOT_ENCRYPTION_SECRET}
+      - ADMIN_EMAIL=${TYPEBOT_ADMIN_EMAIL}
     depends_on:
       postgres-central:
         condition: service_healthy
@@ -128,12 +132,12 @@ services:
   typebot-viewer:
     image: baptistearno/typebot-viewer:latest
     restart: unless-stopped
+    ports:
+      - "8081:3000"
     environment:
       - DATABASE_URL=postgresql://typebot_user:${TYPEBOT_DB_PASS}@postgres-central:5432/typebot_db
       - REDIS_URL=redis://typebot-redis:6379
-      - NEXTAUTH_URL=https://typebot-builder.${DOMINIO_BASE}
-      - NEXT_PUBLIC_VIEWER_API_URL=https://typebot-viewer.${DOMINIO_BASE}
-      - ENCRYPTION_SECRET=${TYPEBOT_ENCRYPTION_SECRET}
+      - NEXT_PUBLIC_VIEWER_URL=${TYPEBOT_VIEWER_URL}
     depends_on:
       postgres-central:
         condition: service_healthy
