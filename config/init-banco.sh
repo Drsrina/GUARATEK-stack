@@ -24,4 +24,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     /* Banco do Chatwoot */
     CREATE USER chatwoot_user WITH PASSWORD '${CHATWOOT_DB_PASS}';
     CREATE DATABASE chatwoot_db OWNER chatwoot_user;
+
+    /* Banco do Typebot */
+    CREATE USER typebot_user WITH PASSWORD '${TYPEBOT_DB_PASS}';
+    CREATE DATABASE typebot_db OWNER typebot_user;
 EOSQL
