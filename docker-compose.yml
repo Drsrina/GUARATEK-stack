@@ -36,6 +36,7 @@ services:
       ODOO_DB_PASS: ${ODOO_DB_PASS}
       WINDMILL_DB_PASS: ${WINDMILL_DB_PASS}
       CHATWOOT_DB_PASS: ${CHATWOOT_DB_PASS}
+      TYPEBOT_DB_PASS: ${TYPEBOT_DB_PASS}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       - ./config/init-banco.sh:/docker-entrypoint-initdb.d/init-banco.sh
@@ -106,33 +107,38 @@ services:
       postgres-central:
         condition: service_healthy
 
-  typebot-db:
-    image: postgres:15-alpine
-    restart: always
-    environment:
-      - POSTGRES_USER=typebot
-      - POSTGRES_PASSWORD=sua_senha_segura
-      - POSTGRES_DB=typebot
-    volumes:
-      - ./data/typebot-db:/var/lib/postgresql/data
-
   typebot-redis:
     image: redis:7-alpine
-    restart: always
+    restart: unless-stopped
 
   typebot-builder:
-    image: baptisteArno/typebot-ce:latest
-    restart: always
-    ports:
-      - "8080:3000" # Mapeia porta interna 3000 para externa 8080
+    image: baptistearno/typebot-builder:latest
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://typebot:sua_senha_segura@typebot-db:5432/typebot
+      - DATABASE_URL=postgresql://typebot_user:${TYPEBOT_DB_PASS}@postgres-central:5432/typebot_db
       - REDIS_URL=redis://typebot-redis:6379
-      - NEXTAUTH_URL=http://seu_dominio_typebot.com
-      - ENCRYPTION_SECRET=uma_chave_longa_e_aleatoria
+      - NEXTAUTH_URL=https://typebot-builder.${DOMINIO_BASE}
+      - ENCRYPTION_SECRET=${TYPEBOT_ENCRYPTION_SECRET}
     depends_on:
-      - typebot-db
-      - typebot-redis
+      postgres-central:
+        condition: service_healthy
+      typebot-redis:
+        condition: service_started
+
+  typebot-viewer:
+    image: baptistearno/typebot-viewer:latest
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://typebot_user:${TYPEBOT_DB_PASS}@postgres-central:5432/typebot_db
+      - REDIS_URL=redis://typebot-redis:6379
+      - NEXTAUTH_URL=https://typebot-builder.${DOMINIO_BASE}
+      - NEXT_PUBLIC_VIEWER_API_URL=https://typebot-viewer.${DOMINIO_BASE}
+      - ENCRYPTION_SECRET=${TYPEBOT_ENCRYPTION_SECRET}
+    depends_on:
+      postgres-central:
+        condition: service_healthy
+      typebot-redis:
+        condition: service_started
 
   # ==========================================
   # CAMADA 4: ATENDIMENTO (Em Standby)

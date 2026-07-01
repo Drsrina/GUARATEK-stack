@@ -4,9 +4,10 @@ Este é um kit completo de infraestrutura como código (IaC) para deploy de um e
 
 O sistema é projetado em **4 camadas**, garantindo escalabilidade, isolamento e segurança.
 
-docker compose up -d           -sem chatwoot
-
-docker compose --profile atendimento up -d      - chatwoot separado
+docker compose up -d                                          # Sobe as camadas 1, 2 e 3 (sem Chatwoot e sem PicoClaw)
+docker compose --profile atendimento up -d                    # Inclui Chatwoot (Camada 4)
+docker compose --profile launcher up -d                       # Inclui PicoClaw
+docker compose --profile atendimento --profile launcher up -d # Stack completa
 
 ---
 
@@ -34,8 +35,9 @@ O cérebro da operação. Aplicativos que rodam 24/7.
 
 - **n8n:** Plataforma de automação e integração (Workflow Engine).
 - **Windmill:** Orquestração de fluxos de trabalho e automações complexas.
-- **PicoClaw:** Solução de "Digital Twin" e robótica de processos (RPA/IoT).
+- **PicoClaw:** Solução de "Digital Twin" e robótica de processos (RPA/IoT). *(Perfil: `launcher`)*
 - **Odoo:** ERP completo com gestão de estoques, finanças e CRM.
+- **Typebot:** Plataforma visual para criação de chatbots e fluxos conversacionais.
 
 ### Camada 4: Atendimento (Opcional)
 
@@ -95,9 +97,11 @@ Antes de iniciar o deploy, certifique-se de ter:
 
    - `CLIENTE_NOME`: Nome da empresa.
    - `DOMINIO_BASE`: Seu domínio ou IP de teste.
-   - `POSTGRES_USER`: Usuário mestre do banco.
-   - `POSTGRES_PASSWORD`: Senha mestre **forta**.
-   - `N8N_ENCRYPTION_KEY`: Chave aleatória para criptografia do n8n.
+    - `POSTGRES_USER`: Usuário mestre do banco.
+    - `POSTGRES_PASSWORD`: Senha mestre **forte**.
+    - `N8N_ENCRYPTION_KEY`: Chave aleatória para criptografia do n8n.
+    - `TYPEBOT_DB_PASS`: Senha do banco do Typebot.
+    - `TYPEBOT_ENCRYPTION_SECRET`: Chave secreta longa e aleatória para o Typebot.
 
 ---
 
