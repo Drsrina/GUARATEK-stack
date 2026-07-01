@@ -1,0 +1,8 @@
+{
+    "model_list": [
+        {
+            "model": "sipeed-maix",
+            "model_name": "sipeed-maix"
+        }
+    ]
+}

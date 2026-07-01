@@ -83,8 +83,10 @@ services:
   picoclaw:
     image: sipeed/picoclaw:latest
     restart: unless-stopped
+    profiles: [ "launcher" ]
+    command: -E --host 0.0.0.0
     ports:
-      - "18800:18800"
+      - "18800:18790"
     volumes:
       - ./data/picoclaw:/root/.picoclaw
 
