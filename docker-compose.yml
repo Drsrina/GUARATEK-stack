@@ -123,6 +123,11 @@ typebot-builder:
       - NEXT_PUBLIC_VIEWER_URL=${TYPEBOT_VIEWER_URL}
       - ENCRYPTION_SECRET=${TYPEBOT_ENCRYPTION_SECRET}
       - ADMIN_EMAIL=${TYPEBOT_ADMIN_EMAIL}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - NEXT_PUBLIC_SMTP_FROM=${NEXT_PUBLIC_SMTP_FROM}
     depends_on:
       postgres-central:
         condition: service_healthy
